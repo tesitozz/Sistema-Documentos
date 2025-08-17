@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Trabajadores - Secretaría</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <div class="container">
+        <a class="navbar-brand" th:href="@{/secretaria}">Sistema de Documentos</a>
+        <span class="navbar-text text-white ms-2">/ Secretaría</span>
+        <form th:action="@{/logout}" method="post" class="ms-auto mb-0">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+            <button class="btn btn-outline-light btn-sm">Salir</button>
+        </form>
+    </div>
+</nav>
+
+<main class="container my-4">
+    <div th:if="${ok}" class="alert alert-success" th:text="${ok}"></div>
+    <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="mb-0">Trabajadores</h4>
+        <div class="d-flex gap-2">
+            <a class="btn btn-success" th:href="@{/secretaria/trabajadores/nuevo}">
+                <i class="bi bi-person-plus me-1"></i> Nuevo
+            </a>
+            <a class="btn btn-outline-secondary" th:href="@{/secretaria}">← Dashboard</a>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead class="table-light">
+                <tr>
+                    <th>ID</th>
+                    <th>DNI</th>
+                    <th>Apellidos y Nombres</th>
+                    <th>Email</th>
+                    <th>Escuela</th>
+                    <th>Estado</th>
+                    <th class="text-end">Acciones</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="t : ${page.content}">
+                    <td th:text="${t.id}">1</td>
+                    <td th:text="${t.dni}">00000000</td>
+                    <td th:text="${t.apellidos + ', ' + t.nombres}">Apellido, Nombre</td>
+                    <td th:text="${t.usuario.email}">correo@correo</td>
+                    <td th:text="${t.escuela.nombre}">Escuela</td>
+                    <td>
+                        <span th:if="${t.usuario.activo}" class="badge bg-success">Activo</span>
+                        <span th:if="${!t.usuario.activo}" class="badge bg-secondary">Inactivo</span>
+                    </td>
+                    <td class="text-end">
+                        <!-- Botón principal: Desactivar o Activar -->
+                        <button th:if="${t.usuario.activo}" class="btn btn-sm btn-outline-danger"
+                                data-bs-toggle="modal"
+                                th:attr="data-bs-target=${'#desModal' + t.id}">
+                            Desactivar
+                        </button>
+                        <form th:if="${!t.usuario.activo}"
+                              th:action="@{'/secretaria/trabajadores/' + ${t.id} + '/reactivar'}" method="post" class="d-inline">
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                            <button class="btn btn-sm btn-outline-success">Reactivar</button>
+                        </form>
+                    </td>
+                </tr>
+
+                <tr th:if="${page.empty}">
+                    <td colspan="7" class="text-center text-muted py-4">No hay trabajadores registrados.</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card-footer d-flex justify-content-between align-items-center">
+            <div><small th:if="${!page.empty}" th:text="${'Mostrando ' + page.numberOfElements + ' de ' + page.totalElements}"></small></div>
+            <nav th:if="${page.totalPages > 1}">
+                <ul class="pagination mb-0">
+                    <li class="page-item" th:classappend="${page.first}? 'disabled'"><a class="page-link" th:href="@{|?page=${0}&size=${page.size}|}">«</a></li>
+                    <li class="page-item" th:classappend="${page.first}? 'disabled'"><a class="page-link" th:href="@{|?page=${page.number-1}&size=${page.size}|}">Anterior</a></li>
+                    <li class="page-item disabled"><span class="page-link" th:text="${page.number + 1}">1</span></li>
+                    <li class="page-item" th:classappend="${page.last}? 'disabled'"><a class="page-link" th:href="@{|?page=${page.number+1}&size=${page.size}|}">Siguiente</a></li>
+                    <li class="page-item" th:classappend="${page.last}? 'disabled'"><a class="page-link" th:href="@{|?page=${page.totalPages-1}&size=${page.size}|}">»</a></li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Modales de Desactivación -->
+    <div th:each="t : ${page.content}">
+        <div class="modal fade" th:id="${'desModal' + t.id}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <form th:action="@{'/secretaria/trabajadores/' + ${t.id} + '/eliminar'}" method="post">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Desactivar trabajador</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                            <p class="mb-0">
+                                ¿Seguro que deseas desactivar a
+                                <strong th:text="${t.apellidos + ', ' + t.nombres}">Nombre</strong>?<br>
+                                No podrá iniciar sesión, pero se conservará su historial.
+                            </p>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Cancelar</button>
+                            <button class="btn btn-danger" type="submit">Desactivar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
